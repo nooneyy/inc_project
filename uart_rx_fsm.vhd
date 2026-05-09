@@ -65,7 +65,7 @@ begin
                     next_state <= STOP;
                 end if;
             when STOP =>
-                if CLK_CNT = "1111" then
+                if CLK_CNT = "1111" then -- CLK_CNT = 15 ... return to idle
                     next_state <= IDLE;
                 end if;
             when others =>
@@ -82,26 +82,24 @@ begin
 
         case state is
             when IDLE =>
-                if DIN = '0' then
+                if DIN = '0' then -- Transmission start, reset CLK_CNT and BIT_CNT
                     CLK_RST <= '1';
                     BIT_RST <= '1';
                 end if;
             when START =>
-                if CLK_CNT = "0111" then
+                if CLK_CNT = "0111" then -- DATA transition? Reset CLK_CNT
                     CLK_RST <= '1';
                 end if;
             when DATA =>
-                if CLK_CNT = "1111" then
+                if CLK_CNT = "1111" then -- BIT read? Reset CLK_CNT and PUSH bit onto shift register
                     CLK_RST <= '1';
                     SHIFT_EN <= '1';
-                end if;
-
-                if BIT_CNT = "1000" then
+                elsif BIT_CNT = "1000" then -- All bits read? Transition to STOP, reset BIT_CNT and send DOUT_VLD
                     BIT_RST <= '1';
                     DOUT_VLD <= '1';
                 end if;
             when STOP =>
-                if CLK_CNT = "1111" then
+                if CLK_CNT = "1111" then -- IDLE transition? Reset CLK_CNT
                     CLK_RST <= '1';
                 end if;
             when others =>

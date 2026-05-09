@@ -25,26 +25,44 @@ architecture behavioral of UART_RX is
 
     -- Shift register output for DOUT (8 bits)
     signal shift_reg : std_logic_vector(7 downto 0);
-    -- Clock pulse counter (from 0 to 15)
-    signal clk_cnt : std_logic_vector(3 downto 0);
-    -- Received Bit counter (from 0 to 8)
-    signal bit_cnt : std_logic_vector(3 downto 0);
     -- Signal for pushing a bit from DIN to the shift register
     signal shift_en : std_logic;
+
+    -- Clock pulse counter (from 0 to 15)
+    signal clk_cnt : std_logic_vector(3 downto 0);
     -- Reset signal for the clock counter driven by the FSM
     signal clk_rst : std_logic;
+
+    -- Received Bit counter (from 0 to 8)
+    signal bit_cnt : std_logic_vector(3 downto 0);
     -- Reset signal for the bit counter driven by the FSM
     signal bit_rst : std_logic;
 
+    -- Signals for the DIN synchronizer circuit
+    signal dsync_in : std_logic;
+    signal dsync_out : std_logic;
+
 begin
+
+    din_synchronizer: process(CLK, RST) -- Synchronizer for preventing metastable states from DIN
+    begin
+        if RST = '1' then
+            -- UART idles at HI, so we set the signals to 1 at RST
+            dsync_in <= '1';
+            dsync_out <= '1';
+        elsif rising_edge(CLK) then
+            dsync_in <= DIN;
+            dsync_out <= dsync_in;
+        end if;
+    end process;
 
     shift_register: process(CLK, RST)
     begin
         if RST = '1' then
             shift_reg <= (others => '0');
         elsif rising_edge(CLK) then
-            if shift_en = '1' then
-                shift_reg <= DIN & shift_reg(7 downto 1); -- UART sends LSB first; after 8 shifts DOUT keeps the normal bit order
+            if shift_en = '1' then -- PUSH signal from FSM
+                shift_reg <= dsync_out & shift_reg(7 downto 1); -- UART sends LSB first; after 8 shifts DOUT keeps the normal bit order
             end if;
         end if;
     end process;
@@ -80,7 +98,7 @@ begin
     port map (
         CLK => CLK,
         RST => RST,
-        DIN => DIN,
+        DIN => dsync_out, -- Synchronous DIN (DIN passed through synchronizer circuit)
         CLK_CNT => clk_cnt,
         BIT_CNT => bit_cnt,
 
