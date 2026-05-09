@@ -58,7 +58,11 @@ begin
                 end if;
             when START =>
                 if CLK_CNT = "0111" then -- CLK_CNT = 7 ... we're in the middle of the start bit
-                    next_state <= DATA;
+                    if DIN = '0' then
+                        next_state <= DATA;
+                    else
+                        next_state <= IDLE;
+                    end if;
                 end if;
             when DATA =>
                 if BIT_CNT = "1000" then -- BIT_CNT = 8 ... BYTE successfully serialized
@@ -69,7 +73,7 @@ begin
         end case;
     end process;
 
-    output_logic: process(state, CLK_CNT, BIT_CNT)
+    output_logic: process(state, DIN, CLK_CNT, BIT_CNT)
     begin
         CLK_RST <= '0';
         BIT_RST <= '0';
@@ -78,8 +82,13 @@ begin
 
         case state is
             -- The IDLE branch is covered by the default(others) branch
+            when IDLE =>
+                if DIN = '0' then
+                    CLK_RST <= '1';
+                    BIT_RST <= '1';
+                end if;
             when START =>
-                if CLK_CNT = "1111" then
+                if CLK_CNT = "0111" then
                     CLK_RST <= '1';
                 end if;
             when DATA =>

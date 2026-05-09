@@ -38,18 +38,18 @@ architecture behavioral of UART_RX is
 
 begin
 
-    shift_register: process(CLK)
+    shift_register: process(CLK, RST)
     begin
         if RST = '1' then
             shift_reg <= (others => '0');
         elsif rising_edge(CLK) then
             if shift_en = '1' then
-                shift_reg <= DIN & shift_reg(6 downto 0); -- UART goes from LSB to MSB, so shift and AND the next bit onto the register
+                shift_reg <= DIN & shift_reg(7 downto 1); -- UART sends LSB first; after 8 shifts DOUT keeps the normal bit order
             end if;
         end if;
     end process;
 
-    clock_counter: process(CLK)
+    clock_counter: process(CLK, RST)
     begin
         if RST = '1' then
             clk_cnt <= (others => '0');
@@ -62,7 +62,7 @@ begin
         end if;
     end process;
 
-    bit_counter: process(CLK)
+    bit_counter: process(CLK, RST)
     begin
         if RST = '1' then
             bit_cnt <= (others => '0');
@@ -90,15 +90,5 @@ begin
         DOUT_VLD => DOUT_VLD
     );
 
-    -- DOUT <= shift_reg; -- DOUT always corresponds to shift_reg, guaranteed valid when DOUT_VLD is 1
-
-    dout_reg: process(CLK)
-begin
-    if rising_edge(CLK) then
-        if DOUT_VLD = '1' then
-            DOUT <= shift_reg;
-        end if;
-    end if;
-end process;
-
+     DOUT <= shift_reg; -- DOUT always corresponds to shift_reg, guaranteed valid when DOUT_VLD is 1
 end architecture;
