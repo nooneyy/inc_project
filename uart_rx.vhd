@@ -70,7 +70,7 @@ begin
             if bit_rst = '1' then
                 bit_cnt <= (others => '0');
             elsif shift_en = '1' then
-                bit_cnt <= bit_cnt + 1; -- Increment only when shift_en = 1 aka clk_cnt = 7 && fsm state = DATA
+                bit_cnt <= bit_cnt + 1; -- Increment only when the FSM samples a data bit
             end if;
         end if;
     end process;

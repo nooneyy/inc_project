@@ -32,7 +32,7 @@ end entity;
 
 architecture behavioral of UART_RX_FSM is
 
-    type t_state is (IDLE, START, DATA);
+    type t_state is (IDLE, START, DATA, STOP);
     signal state : t_state;
     signal next_state : t_state;
 
@@ -58,14 +58,14 @@ begin
                 end if;
             when START =>
                 if CLK_CNT = "0111" then -- CLK_CNT = 7 ... we're in the middle of the start bit
-                    if DIN = '0' then
-                        next_state <= DATA;
-                    else
-                        next_state <= IDLE;
-                    end if;
+                    next_state <= DATA;
                 end if;
             when DATA =>
                 if BIT_CNT = "1000" then -- BIT_CNT = 8 ... BYTE successfully serialized
+                    next_state <= STOP;
+                end if;
+            when STOP =>
+                if CLK_CNT = "1111" then
                     next_state <= IDLE;
                 end if;
             when others =>
@@ -81,7 +81,6 @@ begin
         DOUT_VLD <= '0';
 
         case state is
-            -- The IDLE branch is covered by the default(others) branch
             when IDLE =>
                 if DIN = '0' then
                     CLK_RST <= '1';
@@ -100,6 +99,10 @@ begin
                 if BIT_CNT = "1000" then
                     BIT_RST <= '1';
                     DOUT_VLD <= '1';
+                end if;
+            when STOP =>
+                if CLK_CNT = "1111" then
+                    CLK_RST <= '1';
                 end if;
             when others =>
                 -- Do nothing, covered by default outputs above
